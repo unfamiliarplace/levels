@@ -88,17 +88,71 @@ def average() -> tuple[str, float]:
         a = (t / tw)
 
         return [to_level(a), a]
+    
+def mass_average() -> list[tuple[str, float]]:
+    rows = []
 
-def run() -> None:
-    print('Only one program exists at present: averaging')
+    nxt = input('Enter weights as integers separated by spaces: ').upper().strip()
+    wts = list(int(wt) for wt in nxt.split())
 
-    choice = input('Press Enter to start or Q to quit: ').upper().strip()
+    prompt = 'Enter series of grades or levels; blank to stop: '
+    nxt = input(prompt).upper().strip()
+    while nxt:
+        vals = nxt.split()
+        try:
+            rows.append(list(any_to_grade(v) for v in vals))
+        except Exception as e:
+            print(repr(e))
+        
+        nxt = input(prompt).upper().strip()
+
+    if not rows:
+        return []
+
+    else:
+        avgs = []
+        for row in rows:
+            items = zip(row, wts)
+
+            t = 0
+            tw = 0
+            
+            for (val, wt) in items:
+                t += val * wt
+                tw += wt
+            a = (t / tw)
+
+            avgs.append((to_level(a), a))
+    
+        return avgs
+
+def prog_average() -> None:
+
+    choice = ''
     while choice != 'Q':
         print()
         lv, gr = average()
-        print(f'{lv:<3} | {round(gr)}')
+        print('========')
+        print(f'{round(gr):<2} | {lv}')
         print('')
         choice = input('Press Enter to do another or Q to quit: ').upper().strip()
+
+def prog_mass_average() -> None:
+
+    choice = ''
+    while choice != 'Q':
+        print()
+        avgs = mass_average()
+        print('========')
+        for (lv, gr) in avgs:
+            print(f'{round(gr):<2} | {lv}')
+        print('')
+        choice = input('Press Enter to do another or Q to quit: ').upper().strip()
+
+def run() -> None:
+    choices = [prog_average, prog_mass_average]
+    choice = input('Enter 0 for average or 1 for mass average: ').strip() # TODO lol
+    choices[int(choice)]()
 
 if __name__ == '__main__':
     run()
