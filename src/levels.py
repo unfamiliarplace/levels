@@ -1,6 +1,10 @@
 from __future__ import annotations
 from typing import Union
 
+KTCAS = set('KTCA')
+KTCAS_ORDERED = 'KTCA'
+KTCA_NON = 'N'
+
 I = 'I'
 R = 'R'
 
@@ -25,8 +29,11 @@ LEVELS = {
 
 GRADES = dict(map(reversed, LEVELS.items()))
 
+def is_valid_ktca(ktca: str) -> bool:
+    return ktca.upper().strip() in KTCAS
+
 def is_valid_level(level: str) -> bool:
-    return level.upper() in LEVELS
+    return level.upper().strip() in LEVELS
 
 def is_valid_grade(grade: str) -> bool:
     try:        
@@ -44,6 +51,11 @@ def to_level(grade: float) -> str:
             return GRADES[thresh]
 
 def any_to_grade(value: str) -> float:
+    """
+    Because of unresolvable ambiguity, prioritizes treating values as levels,
+    on the assumption that 1-4% is very unlikely. To override, use a decimal
+    (e.g. 4 -> Level 4 but 4.0 -> 4%).
+    """
     if is_valid_level(value):
         return to_grade(value)
     elif is_valid_grade(value):
@@ -88,14 +100,27 @@ def average() -> tuple[str, float]:
         a = (t / tw)
 
         return [to_level(a), a]
+
+def prog_average() -> None:
+
+    choice = ''
+    while choice != 'Q':
+        print()
+        lv, gr = average()
+        print('========')
+        print(f'{round(gr):<2} | {lv}')
+        print('')
+        choice = input('Press Enter to do another or Q to quit: ').upper().strip()
     
 def mass_average() -> list[tuple[str, float]]:
     rows = []
 
     nxt = input('Enter weights as integers separated by spaces: ').upper().strip()
     wts = list(int(wt) for wt in nxt.split())
+    nxt = input('Enter KTCAs separated by spaces (blank to ignore differentiation): ').upper().strip()
+    kts = nxt.split() if nxt else list(KTCA_NON for _ in range(len(wts)))
 
-    prompt = 'Enter series of grades or levels; blank to stop: '
+    prompt = 'Enter series of levels or grades; blank to stop: '
     nxt = input(prompt).upper().strip()
     while nxt:
         vals = nxt.split()
@@ -111,31 +136,24 @@ def mass_average() -> list[tuple[str, float]]:
 
     else:
         avgs = []
-        for row in rows:
-            items = zip(row, wts)
+        for row in rows:            
+            items = zip(row, wts, kts)
 
-            t = 0
-            tw = 0
+            # total mark and total weight
+            divs = {ktca: [0, 0] for ktca in kts}
             
-            for (val, wt) in items:
-                t += val * wt
-                tw += wt
-            a = (t / tw)
+            for (val, wt, ktca) in items:
+                divs[ktca][0] += val * wt
+                divs[ktca][1] += wt
 
-            avgs.append((to_level(a), a))
+            # Replace with result of calculation (TODO is this the best idea??)
+            for div in divs:
+                a = divs[div][0] / divs[div][1]
+                divs[div] = (to_level(a), a)
+
+            avgs.append(divs)
     
         return avgs
-
-def prog_average() -> None:
-
-    choice = ''
-    while choice != 'Q':
-        print()
-        lv, gr = average()
-        print('========')
-        print(f'{round(gr):<2} | {lv}')
-        print('')
-        choice = input('Press Enter to do another or Q to quit: ').upper().strip()
 
 def prog_mass_average() -> None:
 
@@ -143,10 +161,30 @@ def prog_mass_average() -> None:
     while choice != 'Q':
         print()
         avgs = mass_average()
-        print('========')
-        for (lv, gr) in avgs:
-            print(f'{round(gr):<2} | {lv}')
-        print('')
+        ktcas_used = list(filter(lambda x: x in set(avgs[0].keys()), KTCAS_ORDERED))
+        ktca_mode = ktcas_used != [KTCA_NON]
+
+        print()
+        if not ktca_mode:
+            print('=' * 48)
+        
+        for (i, row) in enumerate(avgs):
+
+            # Repeating header row
+            if ktca_mode and (not (i % 25)):
+                print('=' * 48)
+                print(*(f'   {ktca:<8}' for ktca in ktcas_used), end='')
+                print()
+                print('=' * 48)
+
+            for ktca in ktcas_used:
+                lv, gr = row[ktca]
+                part = f'{round(gr):<2} | {lv:<3}' 
+                print(f'{part:<12}', end='')
+
+            print()
+
+        print()
         choice = input('Press Enter to do another or Q to quit: ').upper().strip()
 
 def run() -> None:
