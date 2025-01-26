@@ -120,6 +120,14 @@ def mass_average() -> list[tuple[str, float]]:
     nxt = input('Enter KTCAs separated by spaces (blank to ignore differentiation): ').upper().strip()
     kts = nxt.split() if nxt else list(KTCA_NON for _ in range(len(wts)))
 
+    # TODO perhaps a better place for this
+    print()
+    k_wts = {k: 0 for k in kts}
+    for i in range(len(kts)):
+        k_wts[kts[i]] += wts[i]
+    print(f'KTCA weight totals:', *(k_wts[k] for k in filter(lambda x: x in kts, KTCAS_ORDERED)))
+    print()
+
     prompt = 'Enter series of levels or grades; blank to stop: '
     nxt = input(prompt).upper().strip()
     while nxt:
@@ -161,6 +169,9 @@ def prog_mass_average() -> None:
     while choice != 'Q':
         print()
         avgs = mass_average()
+        if not avgs:
+            return
+            
         ktcas_used = list(filter(lambda x: x in set(avgs[0].keys()), KTCAS_ORDERED))
         ktca_mode = ktcas_used != [KTCA_NON]
 
